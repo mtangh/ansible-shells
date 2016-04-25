@@ -1,0 +1,9 @@
+# ansible-tools.rc
+
+[ -r "$HOME/.ansible-tools.rc" ] && {
+  . "$HOME/.ansible-tools.rc"
+}
+
+AT_EMAIL="${AT_EMAIL:-$(id -un 2>/dev/null)}"
+AT_COMPANY="${AT_COMPANY:-$(hostname 2>/dev/null)}"
+

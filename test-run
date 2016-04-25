@@ -1,0 +1,134 @@
+#!/bin/bash
+THIS="${0##*/}"
+BASE="${THIS%.*}"
+CDIR=$([ -n "${0%/*}" ] && cd "${0%/*}" 2>/dev/null; pwd)
+
+. $CDIR/ansible-tools.rc $@ ||
+  exit 127
+
+[ -z "$SED" ] && SED=$(type -p gsed 2>/dev/null)
+[ -z "$SED" ] && SED=$(type -p sed 2>/dev/null)
+
+[ -e "./tests/inventory" ] || {
+  echo "$THIS: './tests/inventory' no such file." 1>&2
+  exit 1
+}
+[ -e "./tests/test.yml" ] || {
+  echo "$THIS: './tests/test.yml' no such file." 1>&2
+  exit 1
+}
+
+casenamelist=""
+
+play_inventory="./tests/inventory"
+play_playbook="./tests/test.yml"
+play_options="-D"
+cleanup=0
+
+test_root_dir="./tests/ROOT"
+test_owner=$(id -un 2>/dev/null)
+test_group=$(id -gn 2>/dev/null)
+
+test_prefix_dir=""
+
+[ -z "$ANSIBLE_CONFIG" ] && {
+  for cfg in ./tests/ansible.cfg "$CDIR/ansible.cfg"
+  do
+    [ -e "$cfg" ] && {
+      ANSIBLE_CONFIG="${cfg}"
+      export ANSIBLE_CONFIG
+      break
+    }
+  done
+}
+
+usage() {
+  echo "Usage: $THIS name" 1>&2
+  exit 1
+}
+
+while [ $# -gt 0 ]
+do
+  case $1 in
+  -C|--dry-run)
+    play_options="${play_options} -C"
+    ;;
+  -c|--clean)
+    cleanup=1
+    ;;
+  -h|--help)
+    usage
+    ;;
+  *)
+    casenamelist="${casenamelist} $1"    
+    ;;
+  esac
+  shift
+done
+
+[ -d "${test_root_dir}" ] || {
+  mkdir -p "${test_root_dir}" 1>/dev/null 2>&1
+}
+
+[ -z "$casenamelist" ] && {
+  casenamelist=$(
+    ansible-playbook -i "${play_inventory}" "${play_playbook}" --list-tags |
+    $SED -nre 's/^[ ]*play.*[ ]*TAGS:[ ]*\[(.+)\].*$/\1/gp' |sort -u 2>/dev/null)
+}
+[ -z "$casenamelist" ] && {
+  casenamelist="default"
+}
+
+errors=0
+
+for casename in $casenamelist
+do
+
+  test_prefix_dir="${test_root_dir}/${casename}"
+
+  [ $cleanup -eq 0 ] || {
+    rm -rf "${test_prefix_dir}" 1>/dev/null 2>&1
+  }
+  [ -d "${test_prefix_dir}" ] || {
+    mkdir -p "${test_prefix_dir}" 1>/dev/null 2>&1
+  }
+
+  extra_vars=""
+  extra_vars="${extra_vars} -e test_run=true"
+  extra_vars="${extra_vars} -e test_owner=${test_owner}"
+  extra_vars="${extra_vars} -e test_group=${test_group}"
+  extra_vars="${extra_vars} -e prefix_dir=${test_prefix_dir}"
+
+  printf " %-31s ......... " "$casename"
+
+  ansible-playbook -vvvv \
+    -i "${play_inventory}" "${play_playbook}" \
+    -t "$casename" $play_options $extra_vars \
+    1>"${test_prefix_dir}.log" 2>&1
+
+  ret=$?
+
+  if tail -n 3 "${test_prefix_dir}.log" |
+     grep -E "unreachable=0\s+failed=0" 1>/dev/null 2>&1
+  then
+    echo "OK."
+  else
+    echo "NG."
+    echo
+    echo "{{{ ${casename}.log"
+    echo
+    cat "${test_prefix_dir}.log"
+    echo
+    echo "}}} ${casename}.log"
+    errors=$(( errors+1 ))
+  fi
+
+done
+
+if [ $errors -ne 0 ]
+then
+  echo
+  echo "@@@ ${errors} error(s)"
+fi
+
+exit $errors

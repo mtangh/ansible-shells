@@ -1,0 +1,45 @@
+#!/bin/bash
+THIS="${0##*/}"
+BASE="${THIS%.*}"
+CDIR=$([ -n "${0%/*}" ] && cd "${0%/*}" 2>/dev/null; pwd)
+
+. $CDIR/ansible-tools.rc $@ || 
+  exit 127
+
+ROLENAME=""
+ROLEPATH="${ROLEPATH:-.}"
+
+while [ $# -gt 0 ]
+do
+  case "$1" in
+  -p)
+    if [ -z "$ROLEPATH" ] &&
+       [ -d "$2" ]
+    then
+      ROLEPATH="$2"
+    fi
+    shift
+    ;;
+  -*)
+    ;;
+  *)
+    ROLENAME="${ROLENAME} $1"
+    ;;
+  esac
+  shift
+done
+
+[ -z "$ROLENAME" ] && {
+  cat <<_USAGE_
+Usage: $THIS ROLENAME [-p ROLEPATH]
+
+_USAGE_
+  exit 1
+}
+[ ! -d "$ROLEPATH" ] && {
+  echo "$THIS: no such directry '$ROLEPATH'" 1>&2
+  exit 1
+}
+
+ansible-galaxy list -p "${ROLEPATH}" $ROLENAME
+exit $?
