@@ -1,9 +1,29 @@
 # ansible-tools.rc
 
-[ -r "$HOME/.ansible-tools.rc" ] && {
+if [ -r "$HOME/.ansible-tools.d/ansible-tools.rc" ]
+then
+  . "$HOME/.ansible-tools.d/ansible-tools.rc"
+elif [ -r "$HOME/.ansible-tools.rc" ]
+then
   . "$HOME/.ansible-tools.rc"
+fi
+
+[ -z "$ANSIBLE_CONFIG" ] && {
+  for cfg in \
+  "$HOME/.ansible-tools.d/ansible.cfg" \
+  "$HOME/.ansible.cfg" \
+  "$CDIR/ansible.cfg"
+  do
+    [ -e "$cfg" ] && {
+      ANSIBLE_CONFIG="${cfg}"
+      break
+    }
+  done
+}
+
+[ -n "$ANSIBLE_CONFIG" ] && {
+  export ANSIBLE_CONFIG
 }
 
 AT_EMAIL="${AT_EMAIL:-$(id -un 2>/dev/null)}"
 AT_COMPANY="${AT_COMPANY:-$(hostname 2>/dev/null)}"
-

@@ -31,17 +31,19 @@ test_group=$(id -gn 2>/dev/null)
 
 test_prefix_dir=""
 
-[ -z "$ANSIBLE_CONFIG" ] && {
-  for cfg in ./tests/ansible.cfg "$CDIR/ansible.cfg"
-  do
-    [ -e "$cfg" ] && {
-      ANSIBLE_CONFIG="${cfg}"
-      export ANSIBLE_CONFIG
-      break
-    }
-  done
-}
-
+for cfg in \
+./tests/ansible.cfg \
+./ansible.cfg \
+"$HOME/.ansible-tools.d/ansible.cfg" \ 
+"$HOME/.ansible.cfg" \
+"$CDIR/ansible.cfg"
+do
+  [ -e "$cfg" ] && {
+    ANSIBLE_CONFIG="${cfg}"
+    export ANSIBLE_CONFIG
+    break
+  }
+done
 usage() {
   echo "Usage: $THIS name" 1>&2
   exit 1
