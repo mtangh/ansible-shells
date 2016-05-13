@@ -4,10 +4,10 @@ for rc in \
 "$HOME/.ansible-tools.d/ansible-tools.rc" \
 "$HOME/.ansible-tools.rc"
 do
-  [ -r "$rc" ] && {
-    . "$rc"
-    break
-  }
+  [ -r "$rc" ] ||
+    continue
+  . "$rc"
+  break
 done
 
 [ -z "$ANSIBLE_CONFIG" ] && {
@@ -16,10 +16,10 @@ done
   "$HOME/.ansible.cfg" \
   "$CDIR/ansible.cfg"
   do
-    [ -e "$cfg" ] && {
-      ANSIBLE_CONFIG="${cfg}"
-      break
-    }
+    [ -e "$cfg" ] ||
+      continue
+    ANSIBLE_CONFIG="${cfg}"
+    break
   done
 }
 
@@ -29,3 +29,4 @@ done
 
 AT_EMAIL="${AT_EMAIL:-$(id -un 2>/dev/null)}"
 AT_COMPANY="${AT_COMPANY:-$(hostname 2>/dev/null)}"
+

@@ -45,6 +45,9 @@ test_prefix_dir=""
 
 for cfg in \
 ./tests/ansible.cfg \
+./ansible.cfg \
+"$HOME/.ansible-tools.d/ansible.cfg" \
+"$HOME/.ansible.cfg" \
 "$CDIR/ansible.cfg"
 do
   [ -e "$cfg" ] ||
