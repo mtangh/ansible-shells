@@ -1,12 +1,14 @@
 # ansible-tools.rc
 
-if [ -r "$HOME/.ansible-tools.d/ansible-tools.rc" ]
-then
-  . "$HOME/.ansible-tools.d/ansible-tools.rc"
-elif [ -r "$HOME/.ansible-tools.rc" ]
-then
-  . "$HOME/.ansible-tools.rc"
-fi
+for rc in \
+"$HOME/.ansible-tools.d/ansible-tools.rc" \
+"$HOME/.ansible-tools.rc"
+do
+  [ -r "$rc" ] && {
+    . "$rc"
+    break
+  }
+done
 
 [ -z "$ANSIBLE_CONFIG" ] && {
   for cfg in \
