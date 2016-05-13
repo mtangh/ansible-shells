@@ -23,27 +23,37 @@ casenamelist=""
 play_inventory="./tests/inventory"
 play_playbook="./tests/test.yml"
 play_options="-D"
-cleanup=0
+cleanupall=0
+cleanuptag=0
 
-test_root_dir="./tests/ROOT"
+test_base_dir="./tests"
+test_root_dir="${test_base_dir}/ROOT"
 test_owner=$(id -un 2>/dev/null)
 test_group=$(id -gn 2>/dev/null)
+
+c_extra_vars=""
+c_extra_vars="${c_extra_vars} -e test_run=yes"
+c_extra_vars="${c_extra_vars} -e test_owner=${test_owner}"
+c_extra_vars="${c_extra_vars} -e test_group=${test_group}"
+c_extra_vars="${c_extra_vars} -e test_root_dir=${test_root_dir}"
+[ -d "${test_base_dir}/test-setup" ] &&
+c_extra_vars="${c_extra_vars} -e test_setup_dir=${test_base_dir}/test-setup"
+[ -d "${test_base_dir}/test-teardown" ] &&
+c_extra_vars="${c_extra_vars} -e test_teardown_dir=${test_base_dir}/test-teardown"
 
 test_prefix_dir=""
 
 for cfg in \
 ./tests/ansible.cfg \
-./ansible.cfg \
-"$HOME/.ansible-tools.d/ansible.cfg" \ 
-"$HOME/.ansible.cfg" \
 "$CDIR/ansible.cfg"
 do
-  [ -e "$cfg" ] && {
-    ANSIBLE_CONFIG="${cfg}"
-    export ANSIBLE_CONFIG
-    break
-  }
+  [ -e "$cfg" ] ||
+    continue
+  ANSIBLE_CONFIG="${cfg}"
+  export ANSIBLE_CONFIG
+  break
 done
+
 usage() {
   echo "Usage: $THIS name" 1>&2
   exit 1
@@ -55,11 +65,16 @@ do
   -C|--dry-run)
     play_options="${play_options} -C"
     ;;
-  -c|--clean)
-    cleanup=1
+  --cleanup-all)
+    cleanupall=1
+    ;;
+  --cleanup)
+    cleanuptag=1
     ;;
   -h|--help)
     usage
+    ;;
+  -*)
     ;;
   *)
     casenamelist="${casenamelist} $1"    
@@ -67,6 +82,12 @@ do
   esac
   shift
 done
+
+[ $cleanupall -ne 0 ] &&
+[ -d "${test_root_dir}" ] && {
+  rm -rf "${test_root_dir}" 1>/dev/null 2>&1 &&
+  cleanuptag=0
+}
 
 [ -d "${test_root_dir}" ] || {
   mkdir -p "${test_root_dir}" 1>/dev/null 2>&1
@@ -88,17 +109,18 @@ do
 
   test_prefix_dir="${test_root_dir}/${casename}"
 
-  [ $cleanup -eq 0 ] || {
+  [ $cleanuptag -ne 0 ] &&
+  [ -d "${test_prefix_dir}" ] && {
     rm -rf "${test_prefix_dir}" 1>/dev/null 2>&1
   }
+
   [ -d "${test_prefix_dir}" ] || {
     mkdir -p "${test_prefix_dir}" 1>/dev/null 2>&1
   }
 
-  extra_vars=""
-  extra_vars="${extra_vars} -e test_run=true"
-  extra_vars="${extra_vars} -e test_owner=${test_owner}"
-  extra_vars="${extra_vars} -e test_group=${test_group}"
+  extra_vars="${c_extra_vars}"
+  extra_vars="${extra_vars} -e test_casename=${casename}"
+  extra_vars="${extra_vars} -e test_prefix_dir=${test_prefix_dir}"
   extra_vars="${extra_vars} -e prefix_dir=${test_prefix_dir}"
 
   printf " %-31s ......... " "$casename"
