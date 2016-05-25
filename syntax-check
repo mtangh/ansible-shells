@@ -3,30 +3,7 @@ THIS="${0##*/}"
 BASE="${THIS%.*}"
 CDIR=$([ -n "${0%/*}" ] && cd "${0%/*}" 2>/dev/null; pwd)
 
-. $CDIR/ansible-tools.rc $@ ||
-  exit 127
-
-[ -e "./tests/inventory" ] || {
-  echo "$THIS: './tests/inventory' no such file." 1>&2
-  exit 1
-}
-[ -e "./tests/test.yml" ] || {
-  echo "$THIS: './tests/test.yml' no such file." 1>&2
-  exit 1
-}
-
-[ -z "$ANSIBLE_CONFIG" ] && {
-  for cfg in ./tests/ansible.cfg "$CDIR/ansible.cfg"
-  do
-    [ -e "$cfg" ] && {
-      ANSIBLE_CONFIG="${cfg}"
-      export ANSIBLE_CONFIG
-      break
-    }
-  done
-}
-
-ansible-playbook -i ./tests/inventory ./tests/test.yml -M ./ --syntax-check
+$CDIR/test-run --syntax-check
 RET=$?
 
 [ $RET -eq 0 ] && {

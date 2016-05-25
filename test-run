@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -u
 THIS="${0##*/}"
 BASE="${THIS%.*}"
 CDIR=$([ -n "${0%/*}" ] && cd "${0%/*}" 2>/dev/null; pwd)
@@ -9,27 +9,41 @@ CDIR=$([ -n "${0%/*}" ] && cd "${0%/*}" 2>/dev/null; pwd)
 [ -z "$SED" ] && SED=$(type -p gsed 2>/dev/null)
 [ -z "$SED" ] && SED=$(type -p sed 2>/dev/null)
 
-[ -e "./tests/inventory" ] || {
-  echo "$THIS: './tests/inventory' no such file." 1>&2
+play_playdir=""
+play_playbook="test.yml"
+play_inventory="inventory"
+play_options="-D"
+
+for dir in ./ ./tests ../tests
+do
+  [ -e "$dir/$play_playbook" ] ||
+    continue
+  play_playdir=$(cd "$dir" 1>/dev/null 2>&1; pwd)
+  play_playbook="$play_playdir/$play_playbook"
+  play_inventory="$play_playdir/$play_inventory"
+  break
+done
+
+[ -e "$play_playbook" ] || {
+  echo "$THIS: 'test.yml' no such file." 1>&2
   exit 1
 }
-[ -e "./tests/test.yml" ] || {
-  echo "$THIS: './tests/test.yml' no such file." 1>&2
-  exit 1
+[ -e "$play_inventory" ] || {
+  echo "localhost" >$play_inventory
 }
 
 casenamelist=""
 
-play_inventory="./tests/inventory"
-play_playbook="./tests/test.yml"
-play_options="-D"
-cleanupall=0
-cleanuptag=0
+clean_only=0
+cleanuptag=1
+syntax_chk=0
 
-test_base_dir="./tests"
+test_base_dir="${play_playdir:-.}"
 test_root_dir="${test_base_dir}/ROOT"
 test_owner=$(id -un 2>/dev/null)
 test_group=$(id -gn 2>/dev/null)
+
+test_prefix_dir=""
 
 c_extra_vars=""
 c_extra_vars="${c_extra_vars} -e test_run=yes"
@@ -41,11 +55,9 @@ c_extra_vars="${c_extra_vars} -e test_setup_dir=${test_base_dir}/test-setup"
 [ -d "${test_base_dir}/test-teardown" ] &&
 c_extra_vars="${c_extra_vars} -e test_teardown_dir=${test_base_dir}/test-teardown"
 
-test_prefix_dir=""
-
 for cfg in \
-./tests/ansible.cfg \
 ./ansible.cfg \
+"$play_playdir/ansible.cfg" \
 "$HOME/.ansible-tools.d/ansible.cfg" \
 "$HOME/.ansible.cfg" \
 "$CDIR/ansible.cfg"
@@ -68,11 +80,14 @@ do
   -C|--dry-run)
     play_options="${play_options} -C"
     ;;
-  --cleanup-all)
-    cleanupall=1
+  --syntax-check)
+    syntax_chk=1
     ;;
-  --cleanup)
-    cleanuptag=1
+  --reset)
+    clean_only=1
+    ;;
+  --no-clean)
+    cleanuptag=0
     ;;
   -h|--help)
     usage
@@ -86,10 +101,19 @@ do
   shift
 done
 
-[ $cleanupall -ne 0 ] &&
+[ $syntax_chk -ne 0 ] && {
+  ansible-playbook -vvvv \
+    -i "${play_inventory}" "${play_playbook}" \
+    -M ./ --syntax-check
+  exit $?
+}
+
+[ $clean_only -ne 0 ] &&
 [ -d "${test_root_dir}" ] && {
-  rm -rf "${test_root_dir}" 1>/dev/null 2>&1 &&
-  cleanuptag=0
+  rm -vrf "${test_root_dir}" 1>/dev/null 2>&1
+  echo
+  echo "clean."
+  exit 0
 }
 
 [ -d "${test_root_dir}" ] || {
@@ -106,6 +130,7 @@ done
 }
 
 errors=0
+exitst=0
 
 for casename in $casenamelist
 do
@@ -128,14 +153,18 @@ do
 
   printf " %-31s ......... " "$casename"
 
+  : && {
+
   ansible-playbook -vvvv \
     -i "${play_inventory}" "${play_playbook}" \
-    -t "$casename" $play_options $extra_vars \
-    1>"${test_prefix_dir}.log" 2>&1
+    -t "$casename" $play_options $extra_vars
 
-  ret=$?
+  } 1>"${test_prefix_dir}.log" 2>&1
 
-  if tail -n 3 "${test_prefix_dir}.log" |
+  exitst=$?
+
+  if [ $exitst -eq 0 ] &&
+     tail -n 3 "${test_prefix_dir}.log" |
      grep -E "unreachable=0\s+failed=0" 1>/dev/null 2>&1
   then
     echo "OK."

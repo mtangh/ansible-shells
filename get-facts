@@ -17,7 +17,7 @@ _cleanup() {
   return 0
 }
 
-trap -- "_cleanup" SIGTERM SIGINT SIGHUP SIGQUIT
+trap -- "_cleanup" EXIT SIGTERM SIGINT SIGHUP SIGQUIT
 
 while [ $# -gt 0 ]
 do
