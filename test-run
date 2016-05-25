@@ -6,6 +6,7 @@ CDIR=$([ -n "${0%/*}" ] && cd "${0%/*}" 2>/dev/null; pwd)
 . $CDIR/ansible-tools.rc $@ ||
   exit 127
 
+SED=""
 [ -z "$SED" ] && SED=$(type -p gsed 2>/dev/null)
 [ -z "$SED" ] && SED=$(type -p sed 2>/dev/null)
 

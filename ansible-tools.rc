@@ -10,6 +10,8 @@ do
   break
 done
 
+ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-}"
+
 [ -z "$ANSIBLE_CONFIG" ] && {
   for cfg in \
   "$HOME/.ansible-tools.d/ansible.cfg" \
