@@ -40,7 +40,7 @@ cleanuptag=1
 syntax_chk=0
 
 test_base_dir="${play_playdir:-.}"
-test_root_dir="${test_base_dir}/ROOT"
+test_root_dir="${test_base_dir}/target"
 test_owner=$(id -un 2>/dev/null)
 test_group=$(id -gn 2>/dev/null)
 
@@ -111,7 +111,7 @@ done
 
 [ $clean_only -ne 0 ] &&
 [ -d "${test_root_dir}" ] && {
-  rm -vrf "${test_root_dir}" 1>/dev/null 2>&1
+  rm -vrf "${test_root_dir}"
   echo
   echo "clean."
   exit 0
