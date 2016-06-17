@@ -1,6 +1,8 @@
 # ansible-tools.rc
 
 for rc in \
+"./.ansible.proj" \
+"./.ansible-tools.proj" \
 "$HOME/.ansible-tools.d/ansible-tools.rc" \
 "$HOME/.ansible-tools.rc"
 do
@@ -29,6 +31,6 @@ ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-}"
   export ANSIBLE_CONFIG
 }
 
-AT_EMAIL="${AT_EMAIL:-$(id -un 2>/dev/null)}"
-AT_COMPANY="${AT_COMPANY:-$(hostname 2>/dev/null)}"
+AT_AUTHOR="${AUTHOR:-$(id -un 2>/dev/null)}"
+AT_COMPANY="${COMPANY:-$(hostname 2>/dev/null)}"
 
