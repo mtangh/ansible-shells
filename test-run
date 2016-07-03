@@ -81,6 +81,9 @@ do
   -C|--dry-run)
     play_options="${play_options} -C"
     ;;
+  --play-args)
+    play_options="${play_options} ${1}"
+    ;;
   --syntax-check)
     syntax_chk=1
     ;;
@@ -96,7 +99,7 @@ do
   -*)
     ;;
   *)
-    casenamelist="${casenamelist} $1"    
+    casenamelist="${casenamelist} ${1}"    
     ;;
   esac
   shift
@@ -147,10 +150,28 @@ do
     mkdir -p "${test_prefix_dir}" 1>/dev/null 2>&1
   }
 
+  case_options="${play_options}"
+  
+  for optsfile in ./{,opts/,play-options/}{all,$casename}.opts
+  do
+    if [ -r "${optsfile}" ]
+    then
+      case_options="${case_options} $(cat $optsfile)"
+    fi
+  done
+  
   extra_vars="${c_extra_vars}"
   extra_vars="${extra_vars} -e test_casename=${casename}"
   extra_vars="${extra_vars} -e test_prefix_dir=${test_prefix_dir}"
   extra_vars="${extra_vars} -e prefix_dir=${test_prefix_dir}"
+  
+  for varsfile in ./{,vars/}{all,$casename}.{yml,json}
+  do
+    if [ -r "${varsfile}" ]
+    then
+      extra_vars="${extra_vars} -e '@${varsfile}'"
+    fi
+  done
 
   printf " %-31s ......... " "$casename"
 
@@ -158,7 +179,7 @@ do
 
   ansible-playbook -vvvv \
     -i "${play_inventory}" "${play_playbook}" \
-    -t "$casename" $play_options $extra_vars
+    -t "$casename" $case_options $extra_vars
 
   } 1>"${test_prefix_dir}.log" 2>&1
 
