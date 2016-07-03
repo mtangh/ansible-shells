@@ -6,11 +6,12 @@ CDIR=$([ -n "${0%/*}" ] && cd "${0%/*}" 2>/dev/null; pwd)
 . $CDIR/ansible-tools.rc $@ ||
   exit 127
 
-AT_EMAIL="${AT_EMAIL:-ansible@localhost}"
+AT_AUTHOR="${AT_AUTHOR:-ansible@localhost}"
 AT_COMPANY="${AT_COMPANY:-ANSIBLE.COM}"
 
 ROLENAME=""
 ROLEPATH="${ROLEPATH:-.}"
+TMPLTDIR="${TMPLTDIR:-$CDIR/${BASE}.d}"
 
 while [ $# -gt 0 ]
 do
@@ -55,7 +56,7 @@ ansible-galaxy init --offline -p $ROLEPATH $ROLENAME && {
   if [ -e "$ROLE_DIR/meta/main.yml" ]
   then
     cat "$ROLE_DIR/meta/main.yml" |
-    sed -e 's#\(author:\) \(your name\)#\1 '"$AT_EMAIL"'#g' \
+    sed -e 's#\(author:\) \(your name\)#\1 '"$AT_AUTHOR"'#g' \
         -e 's#\(company:\) \(your company (optional)\)#\1 '"$AT_COMPANY"'#g' \
         1>.temp 2>/dev/null &&
     mv -f .temp \
@@ -63,9 +64,9 @@ ansible-galaxy init --offline -p $ROLEPATH $ROLENAME && {
           1>/dev/null 2>&1
   fi
   
-  if [ -e "$CDIR/${THIS}.d" ]
+  if [ -d "$TMPLTDIR" ]
   then
-    cp -fLRv "$CDIR/${THIS}.d/"* \
+    cp -fLRv "$TMPLTDIR/"* \
              "$ROLE_DIR/"
   fi
 
