@@ -152,30 +152,48 @@ do
 
   case_options="${play_options}"
   
-  for optsfile in ./{,opts/,play-options/}{all,$casename}.opts
+  for optsfile in ${play_playdir}/{,opts/,play-options/}{all,$casename}.opts
   do
     if [ -r "${optsfile}" ]
     then
       case_options="${case_options} $(cat $optsfile)"
     fi
   done
+
+  case_options=$(echo "$case_options"|$SED -re 's#^ *##g' 2>/dev/null)
   
   extra_vars="${c_extra_vars}"
   extra_vars="${extra_vars} -e test_casename=${casename}"
   extra_vars="${extra_vars} -e test_prefix_dir=${test_prefix_dir}"
   extra_vars="${extra_vars} -e prefix_dir=${test_prefix_dir}"
   
-  for varsfile in ./{,vars/}{all,$casename}.{yml,json}
+  for varsfile in ${play_playdir}/{,vars/}{all,$casename}.{yml,json}
   do
     if [ -r "${varsfile}" ]
     then
-      extra_vars="${extra_vars} -e '@${varsfile}'"
+      extra_vars="${extra_vars} -e @${varsfile}"
     fi
   done
+
+  extra_vars=$(echo "$extra_vars"|$SED -re 's#^ *##g' 2>/dev/null)
 
   printf " %-31s ......... " "$casename"
 
   : && {
+
+  cat <<_LOG_
+[$THIS]
+------------------------------------------------------------------------
+--  Test Case:
+--    ${casename} in playbook:${play_playbook}
+--  Play Options: 
+--    -vvvv
+--    -i ${play_inventory}
+--    ${case_options}
+--    ${extra_vars}
+------------------------------------------------------------------------
+
+_LOG_
 
   ansible-playbook -vvvv \
     -i "${play_inventory}" "${play_playbook}" \
