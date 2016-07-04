@@ -1,3 +1,23 @@
 ---
 # test-setup tasks file
 
+- block:
+
+  - name: test-setup | create directories for test
+    file:
+      path: "{{ '%s%s'|format(prefix_dir,item) }}"
+      state: directory
+      owner: "{{ test_owner }}"
+      group: "{{ test_group }}"
+      mode: "0755"
+    with_items: "{{ _test_setup_dirs }}"
+    when:
+
+  vars:
+    _test_setup_dirs:
+    - /etc
+    
+  when: test_run|d(none) is not none
+        and prefix_dir|d('')|length > 0
+  tags:
+  - '[test-setup]'
