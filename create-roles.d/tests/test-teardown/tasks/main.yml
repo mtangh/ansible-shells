@@ -12,6 +12,7 @@
           "{{ _test_actual_dir }}"
       fi
     register: test_teardown_result
+    ignore_errors: "{{ test_teardown_validation|d(true) }}"
 
   vars:
     _test_expects_dir: "{{ '%s/files/expects/%s'|
@@ -24,3 +25,4 @@
         and test_prefix_dir|d(none) is not none
   tags:
   - '[test-teardown]'
+
