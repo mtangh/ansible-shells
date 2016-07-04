@@ -12,7 +12,7 @@
           "{{ _test_actual_dir }}"
       fi
     register: test_teardown_result
-    ignore_errors: "{{ test_teardown_validation|d(true) }}"
+    ignore_errors: "{{ test_after_validation_no_errors|d(false) }}"
 
   vars:
     _test_expects_dir: "{{ '%s/files/expects/%s'|
