@@ -1,36 +1,52 @@
 # ansible-tools.rc
+ANSIBLETOOLS_RC="${BASH_SOURCE##*/}"
+ANSIBLETOOLSDIR=$([ -n "${BASH_SOURCE%/*}" ] && cd "${BASH_SOURCE%/*}" 2>/dev/null; pwd)
 
-for rc in \
-"./.ansible.proj" \
-"./.ansible-tools.proj" \
-"$HOME/.ansible-tools.d/ansible-tools.rc" \
-"$HOME/.ansible-tools.rc"
-do
-  [ -r "$rc" ] ||
-    continue
-  . "$rc"
-  break
-done
+# Set path
+if [ -d "$ANSIBLETOOLSDIR" ]
+then
+  echo "$PATH" |
+  grep -E '^(.+:|)'"${ANSIBLETOOLSDIR}"'(:.+|)$' 1>/dev/null 2>&1 || {
+    PATH="${PATH}:${ANSIBLETOOLSDIR}"
+    export PATH
+  }
+fi
 
-ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-}"
-
-[ -z "$ANSIBLE_CONFIG" ] && {
-  for cfg in \
-  "$HOME/.ansible-tools.d/ansible.cfg" \
-  "$HOME/.ansible.cfg" \
-  "$CDIR/ansible.cfg"
+# ansible config
+_print-ansible-config() {
+  local ANSIBLE_CONFIG=""
+  # ANSIBLE_CONFIG
+  for rc in \
+  ./.ansible{,-tools}.proj \
+  $HOME/{,.ansible-tools.d/}ansible-tools.rc \
   do
-    [ -e "$cfg" ] ||
-      continue
-    ANSIBLE_CONFIG="${cfg}"
-    break
-  done
+    [ -r "$rc" ] || continue
+    . "$rc" && cat "$rc" && break
+  done 2>/dev/null
+  ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-}"
+  [ -z "$ANSIBLE_CONFIG" ] && {
+    for cfg in \
+    ./{.,}ansible.cfg \
+    ${HOME}/.{,ansible-tools.d/}ansible.cfg \
+    ${ANSIBLETOOLSDIR}/ansible.cfg
+    do
+      [ -e "$cfg" ] || continue
+      ANSIBLE_CONFIG="${cfg}" && break
+    done
+  }
+  echo "export ANSIBLE_CONFIG=${ANSIBLE_CONFIG}"
+  return $?
 }
 
-[ -n "$ANSIBLE_CONFIG" ] && {
-  export ANSIBLE_CONFIG
-}
+# Set ANSIBLE_CONFIG
+eval $(_print-ansible-config)
 
+# Author
 AT_AUTHOR="${AUTHOR:-$(id -un 2>/dev/null)}"
+
+# Company
 AT_COMPANY="${COMPANY:-$(hostname 2>/dev/null)}"
+
+# Aliases
+alias ansible-config-set='eval $(_print-ansible-config)'
 
