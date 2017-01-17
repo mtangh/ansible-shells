@@ -1,0 +1,30 @@
+# ansible-tools-rc
+ansible-tools-rc() {
+  local ansibletoolsrc=""
+  local ansible_config=""
+  ANSIBLE_CONDIF=""
+  for ansibletoolsrc in \
+    ./.ansible{,-tools}.proj \
+    ${HOME}/.{,.ansible-tools.d/}ansible-tools.rc
+  do
+    [ -r "$ansibletoolsrc" ] && {
+      . "$ansibletoolsrc" &&
+      break
+    }
+  done 1>/dev/null 2>&1
+  [ -z "$ANSIBLE_CONFIG" ] &&
+  for ansible_config in \
+    ./{.,}ansible.cfg \
+    ${HOME}/.{,ansible-tools.d/}ansible.cfg \
+    ${ANSIBLETOOLSDIR}/ansible.cfg
+  do
+    [ -e "$ansible_config" ] && {
+      ANSIBLE_CONFIG="${ansible_config}"
+      break
+    }
+  done
+  [ -z "$ANSIBLE_CONFIG" ] ||
+  echo "export ANSIBLE_CONFIG=${ANSIBLE_CONFIG}"
+  return $?
+}
+# vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline

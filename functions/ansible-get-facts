@@ -1,0 +1,33 @@
+# ansible-get-facts
+ansible-get-facts() {
+  local targethost=""
+  local ansibleopt=""
+  eval $(getoptions "i|inventory-file: m|module-name:" "$@")
+  while getoptions_has_next
+  do
+    eval $(getoptions_shift)
+    case "$_getopt_V" in
+    --)
+      ;;
+    -*)
+      ansibleopt=$(echo $ansibleopt "$_getopt_V")
+      ;;
+    *)
+      if [ -z "${targethost}" ]
+      then targethost="$_getopt_V"
+      else ansibleopt=$(echo $ansibleopt "$_getopt_V")
+      fi
+      ;;
+    esac
+  done
+  [ -z "${targethost}" ] && {
+    cat <<_USAGE_
+Usage: $FUNCNAME hostname_or_ipaddress [ansibleopt]
+
+_USAGE_
+    return 1
+  }
+  ansible -m setup -i '${targethost},' "${targethost}" $ansibleopt
+  return $?
+}
+# vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline

@@ -1,0 +1,64 @@
+# ansible-create-roles
+ansible-create-roles() {
+  local _role_name=""
+  local _role_path="${ROLEPATH:-.}"
+  local _role_wdir=""
+  local _tmplt_dir="${TMPLTDIR:-$ANSIBLETOOLSDIR/role.tmplt}"
+  local _AT_AUTHOR="${AT_AUTHOR:-ansible@localhost}"
+  local _ATCOMPANY="${AT_COMPANY:-ANSIBLE.COM}"
+  eval $(getoptions "p|:=_role_path" "$@")
+  while getoptions_has_next
+  do
+    eval $(getoptions_shift)
+    case "$_getopt_V" in
+    --)
+      ;;
+    *)
+      _role_name=$(echo $_role_name "$_getopt_V")
+      ;;
+    esac
+  done
+  [ -z "$_role_name" ] && {
+    cat <<_USAGE_
+Usage: $FUNCNAME ROLENAME [-p ROLEPATH]
+
+_USAGE_
+    return 1
+  }
+  [ -d "$_role_path" ] || {
+    echo "$FUNCNAME: no such directry '$_role_path'" 1>&2
+    return 2
+  }
+  [ -d "$_role_path/$_role_name" ] && {
+    echo "$THIS: '$_role_name' found in '$_role_path'." 1>&2
+    return 3
+  }
+
+  ansible-galaxy init --offline -p "$_role_path" "$_role_name" && {
+
+    _role_wdir="$_role_path/$_role_name"
+
+		if [ -e "$_role_wdir/meta/main.yml" ]
+		then
+			cat "$_role_wdir/meta/main.yml" |
+			sed -e 's#\(author:\) \(your name\)#\1 '"$_AT_AUTHOR"'#g' \
+					-e 's#\(company:\) \(your company (optional)\)#\1 '"$_ATCOMPANY"'#g' \
+					1>.temp 2>/dev/null &&
+			mv -f .temp \
+						"$_role_wdir/meta/main.yml" \
+						1>/dev/null 2>&1
+		fi
+		
+		if [ -d "$_tmplt_dir" ]
+		then
+			cp -fLRv "$_tmplt_dir/"* \
+							 "$_role_wdir/"
+    else
+      :
+		fi
+
+  }
+
+  return $?
+}
+# vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline

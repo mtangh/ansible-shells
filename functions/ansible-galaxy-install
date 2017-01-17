@@ -1,0 +1,35 @@
+# ansible-galaxy-install
+ansible-galaxy-install() {
+  local _role_name=""
+  local _role_path="${ROLEPATH:-.}"
+  eval $(getoptions "p|:=_role_path" "$@")
+  while getoptions_has_next
+  do
+    eval $(getoptions_shift)
+    case "$_getopt_V" in
+    --)
+      ;;
+    *)
+      _role_name=$(echo $_role_name "$_getopt_V")
+      ;;
+    esac
+  done
+  [ -z "$_role_name" ] && {
+    cat <<_USAGE_
+Usage: $FUNCNAME ROLENAME [-p ROLEPATH]
+
+_USAGE_
+    return 1
+  }
+  [ -d "$_role_path" ] || {
+    echo "$FUNCNAME: no such directry '$_role_path'" 1>&2
+    return 2
+  }
+  [ -d "$_role_path/$_role_name" ] || {
+    echo "$FUNCNAME: '$_role_name' found in '$_role_path'." 1>&2
+    return 3
+  }
+  ansible-galaxy install -p "${_role_path}" $_role_name
+  return $?
+}
+# vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline

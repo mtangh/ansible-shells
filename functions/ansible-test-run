@@ -1,0 +1,215 @@
+# ansible-test-run
+ansible-test-run() {
+  local ansible_conf=""
+  local casenamelist=""
+  local testcasename=""
+  local play_playdir=""
+  local play_testyml="test.yml"
+  local play_options="-D"
+  local case_options=""
+  local inventory_fn="inventory"
+  local syntax_check=0
+  local cleanup_only=0
+  local cleanup_tags=1
+  local test_basedir="${play_playdir:-.}"
+  local test_rootdir="${test_basedir}/target"
+  local test_r_owner=$(id -un 2>/dev/null)
+  local test_r_group=$(id -gn 2>/dev/null)
+  local test_prefdir=""
+  local c_extra_vars=""
+  local tmpextravars=""
+  local tmp_optsfile=""
+  local tmp_varsfile=""
+  local tmp_test_dir=""
+
+  local errors=0
+  local exitst=0
+
+  local SED=""
+  [ -z "$SED" ] && SED=$(type -p gsed 2>/dev/null)
+  [ -z "$SED" ] && SED=$(type -p sed 2>/dev/null)
+
+  for tmp_test_dir in ./ ./tests ../tests
+  do
+    [ -e "$tmp_test_dir/$play_testyml" ] ||
+      continue
+    play_playdir=$(cd "$tmp_test_dir" 1>/dev/null 2>&1; pwd)
+    play_testyml="$play_playdir/$play_testyml"
+    inventory_fn="$play_playdir/$inventory_fn"
+    break
+  done
+
+  for ansible_conf in \
+    ./ansible.cfg \
+    "$play_playdir/ansible.cfg" \
+    "$HOME/.ansible-tools.d/ansible.cfg" \
+    "$HOME/.ansible.cfg" \
+    "$CDIR/ansible.cfg"
+  do
+    [ -e "$ansible_conf" ] ||
+      continue
+    ANSIBLE_CONFIG="${ansible_conf}"
+    export ANSIBLE_CONFIG
+    break
+  done
+
+  [ -e "$play_testyml" ] || {
+    echo "$THIS: 'test.yml' no such file." 1>&2
+    return 2
+  }
+
+  [ -e "$inventory_fn" ] || {
+    echo "localhost" >$inventory_fn
+  }
+
+  c_extra_vars=""
+  c_extra_vars="${c_extra_vars} -e test_run=yes"
+  c_extra_vars="${c_extra_vars} -e test_r_owner=${test_r_owner}"
+  c_extra_vars="${c_extra_vars} -e test_r_group=${test_r_group}"
+  c_extra_vars="${c_extra_vars} -e test_rootdir=${test_rootdir}"
+  [ -d "${test_basedir}/test-setup" ] &&
+  c_extra_vars="${c_extra_vars} -e test_setup_dir=${test_basedir}/test-setup"
+  [ -d "${test_basedir}/test-teardown" ] &&
+  c_extra_vars="${c_extra_vars} -e test_teardown_dir=${test_basedir}/test-teardown"
+
+  eval $(getoptions "|syntax-check=syntax_check |reset=cleanup_only |no-clean=cleanup_tags" "$@")
+  while getoptions_has_next
+  do
+    eval $(getoptions_shift)
+    case "$_getopt_V" in
+    -C|--dry-run)
+      play_options=$(echo ${play_options} -C)
+      ;;
+    --play-args)
+      play_options=$(echo ${play_options} "${_getopt_V}")
+      ;;
+    -h|--help)
+      echo "Usage: $FUNCNAME [OPTIONS] [test-case-name]" 1>&2
+      return 1
+      ;;
+    -*)
+      ;;
+    *)
+      casenamelist=$(echo $casenamelist "${_getopt_V}")
+      ;;
+    esac
+  done
+
+  [ $syntax_check -ne 0 ] && {
+    ansible-playbook -vvvv \
+      -i "${inventory_fn}" "${play_testyml}" \
+      -M ./ --syntax-check
+    return $?
+  }
+
+  [ $cleanup_only -ne 0 ] &&
+  [ -d "${test_rootdir}" ] && {
+    rm -vrf "${test_rootdir}"
+    echo
+    echo "clean."
+    return 0
+  }
+
+  [ -d "${test_rootdir}" ] || {
+    mkdir -p "${test_rootdir}" 1>/dev/null 2>&1
+  }
+
+  [ -z "$casenamelist" ] && {
+    casenamelist=$(
+      ansible-playbook -i "${inventory_fn}" "${play_testyml}" --list-tags |
+      $SED -nre 's/^[ ]*play.*[ ]*TAGS:[ ]*\[(.+)\].*$/\1/gp' |sort -u 2>/dev/null)
+  }
+  [ -z "$casenamelist" ] && {
+    casenamelist="default"
+  }
+
+  for testcasename in $casenamelist
+  do
+
+    test_prefdir="${test_rootdir}/${testcasename}"
+
+    [ $cleanup_tags -ne 0 ] &&
+    [ -d "${test_prefdir}" ] && {
+      rm -rf "${test_prefdir}" 1>/dev/null 2>&1
+    }
+
+    [ -d "${test_prefdir}" ] || {
+      mkdir -p "${test_prefdir}" 1>/dev/null 2>&1
+    }
+
+    case_options="${play_options}"
+    
+    for tmp_optsfile in ${play_playdir}/{,opts/,play-options/}{all,$testcasename}.opts
+    do
+      [ -r "${tmp_optsfile}" ] &&
+      case_options="${case_options} $(cat $tmp_optsfile)"
+    done
+
+    case_options=$(echo "$case_options"|$SED -re 's#^ *##g' 2>/dev/null)
+    
+    tmpextravars="${c_extra_vars}"
+    tmpextravars="${tmpextravars} -e test_casename=${testcasename}"
+    tmpextravars="${tmpextravars} -e test_prefix_dir=${test_prefdir}"
+    tmpextravars="${tmpextravars} -e prefix_dir=${test_prefdir}"
+    
+    for tmp_varsfile in ${play_playdir}/{,vars/}{all,$testcasename}.{yml,json}
+    do
+      [ -r "${tmp_varsfile}" ] &&
+      tmpextravars="${tmpextravars} -e @${tmp_varsfile}"
+    done
+
+    tmpextravars=$(echo "$tmpextravars"|$SED -re 's#^ *##g' 2>/dev/null)
+
+    printf " %-31s ......... " "$testcasename"
+
+    : && {
+
+    cat <<_LOG_
+[$THIS]
+------------------------------------------------------------------------
+--  Test Case:
+--    ${testcasename} in playbook:${play_testyml}
+--  Play Options: 
+--    -vvvv
+--    -i ${inventory_fn}
+--    ${case_options}
+--    ${tmpextravars}
+------------------------------------------------------------------------
+
+_LOG_
+
+    ansible-playbook -vvvv \
+      -i "${inventory_fn}" "${play_testyml}" \
+      -t "$testcasename" $case_options $tmpextravars
+
+    } 1>"${test_prefdir}.log" 2>&1
+
+    exitst=$?
+
+    if [ $exitst -eq 0 ] &&
+       tail -n 3 "${test_prefdir}.log" |
+       grep -E "unreachable=0\s+failed=0" 1>/dev/null 2>&1
+    then
+      echo "OK."
+    else
+      echo "NG."
+      echo
+      echo "{{{ ${testcasename}.log"
+      echo
+      cat "${test_prefdir}.log"
+      echo
+      echo "}}} ${testcasename}.log"
+      errors=$(( errors+1 ))
+    fi
+
+  done
+
+  if [ $errors -ne 0 ]
+  then
+    echo
+    echo "@@@ ${errors} error(s)"
+  fi
+
+  return $errors
+}
+# vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline

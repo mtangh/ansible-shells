@@ -12,41 +12,54 @@ then
   }
 fi
 
+# Load the functions
+[ -d "$ANSIBLETOOLSDIR/functions" ] &&
+for function in $ANSIBLETOOLSDIR/functions/*
+do
+  . "$function"
+done 1>/dev/null 2>&1
+unset function
+
 # ansible config
-_print-ansible-config() {
-  local ANSIBLE_CONFIG=""
-  # ANSIBLE_CONFIG
-  for rc in \
-  ./.ansible{,-tools}.proj \
-  $HOME/{,.ansible-tools.d/}ansible-tools.rc \
+ansible-tools-rc() {
+  local ansibletoolsrc=""
+  local ansible_config=""
+  ANSIBLE_CONDIF=""
+  for ansibletoolsrc in \
+    ./.ansible{,-tools}.proj \
+    ${HOME}/.{,.ansible-tools.d/}ansible-tools.rc
   do
-    [ -r "$rc" ] || continue
-    . "$rc" && cat "$rc" && break
-  done 2>/dev/null
-  ANSIBLE_CONFIG="${ANSIBLE_CONFIG:-}"
-  [ -z "$ANSIBLE_CONFIG" ] && {
-    for cfg in \
+    [ -r "$ansibletoolsrc" ] && {
+      . "$ansibletoolsrc" &&
+      break
+    }
+  done 1>/dev/null 2>&1
+  [ -z "$ANSIBLE_CONFIG" ] &&
+  for ansible_config in \
     ./{.,}ansible.cfg \
     ${HOME}/.{,ansible-tools.d/}ansible.cfg \
     ${ANSIBLETOOLSDIR}/ansible.cfg
-    do
-      [ -e "$cfg" ] || continue
-      ANSIBLE_CONFIG="${cfg}" && break
-    done
-  }
+  do
+    [ -e "$ansible_config" ] && {
+      ANSIBLE_CONFIG="${ansible_config}"
+      break
+    }
+  done
+  [ -z "$ANSIBLE_CONFIG" ] ||
   echo "export ANSIBLE_CONFIG=${ANSIBLE_CONFIG}"
   return $?
 }
 
 # Set ANSIBLE_CONFIG
-eval $(_print-ansible-config)
+ansible-tools-rc
 
 # Author
-AT_AUTHOR="${AUTHOR:-$(id -un 2>/dev/null)}"
+ANSIBLETOOLS_AUTHOR="${AUTHOR:-$(id -un 2>/dev/null)}"
 
 # Company
-AT_COMPANY="${COMPANY:-$(hostname 2>/dev/null)}"
+ANSBILETOOLS_COMPANY="${COMPANY:-$(hostname 2>/dev/null)}"
 
-# Aliases
-alias ansible-config-set='eval $(_print-ansible-config)'
+# Role template
+ANSIBLETOOLS_TMPLTDIAR="$ANSIBLETOOLSDIR/role.tmplt.d"
 
+# vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline
