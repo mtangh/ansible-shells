@@ -3,7 +3,7 @@ ansible-create-roles() {
   local _role_name=""
   local _role_path="${ROLEPATH:-.}"
   local _role_wdir=""
-  local _tmplt_dir="${TMPLTDIR:-$ANSIBLETOOLSDIR/role.tmplt}"
+  local _tmplt_dir="${AT_TMPLT_DIR:-$ANSIBLETOOLSDIR/role.tmplt.d}"
   local _AT_AUTHOR="${AT_AUTHOR:-ansible@localhost}"
   local _ATCOMPANY="${AT_COMPANY:-ANSIBLE.COM}"
   eval $(getoptions "p|:=_role_path" "$@")
@@ -30,7 +30,7 @@ _USAGE_
     return 2
   }
   [ -d "$_role_path/$_role_name" ] && {
-    echo "$THIS: '$_role_name' found in '$_role_path'." 1>&2
+    echo "$FUNCNAME: '$_role_name' found in '$_role_path'." 1>&2
     return 3
   }
 
@@ -51,11 +51,12 @@ _USAGE_
 		
 		if [ -d "$_tmplt_dir" ]
 		then
-			cp -fLRv "$_tmplt_dir/"* \
-							 "$_role_wdir/"
+      echo "- extract the templates '$_tmplt_dir'."
+      (cd "$_tmplt_dir" && tar -cv .) |
+      (cd "$_role_wdir" && tar -xf -)
     else
       :
-		fi
+		fi #2>/dev/null
 
   }
 
