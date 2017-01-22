@@ -20,38 +20,17 @@ do
 done 1>/dev/null 2>&1
 unset function
 
-# ansible config
-ansible-tools-rc() {
-  local ansibletoolsrc=""
-  local ansible_config=""
-  ANSIBLE_CONDIF=""
-  for ansibletoolsrc in \
-    ./.ansible{,-tools}.proj \
-    ${HOME}/.{,.ansible-tools.d/}ansible-tools.rc
-  do
-    [ -r "$ansibletoolsrc" ] && {
-      . "$ansibletoolsrc" &&
-      break
-    }
-  done 1>/dev/null 2>&1
-  [ -z "$ANSIBLE_CONFIG" ] &&
-  for ansible_config in \
-    ./{.,}ansible.cfg \
-    ${HOME}/.{,ansible-tools.d/}ansible.cfg \
-    ${ANSIBLETOOLSDIR}/ansible.cfg
-  do
-    [ -e "$ansible_config" ] && {
-      ANSIBLE_CONFIG="${ansible_config}"
-      break
-    }
-  done
-  [ -z "$ANSIBLE_CONFIG" ] ||
-  echo "export ANSIBLE_CONFIG=${ANSIBLE_CONFIG}"
-  return $?
-}
-
-# Set ANSIBLE_CONFIG
-ansible-tools-rc
+# ansible tools rc
+for ansibletoolsrc in \
+  ./.ansible{,-tools}.proj \
+  ${HOME}/.{,.ansible-tools.d/}ansible-tools.rc
+do
+  [ -r "$ansibletoolsrc" ] && {
+    echo ". $ansibletoolsrc" &&
+    break
+  }
+done 1>/dev/null 2>&1
+unset ansibletoolsrc
 
 # Author
 ANSIBLETOOLS_AUTHOR="${AUTHOR:-$(id -un 2>/dev/null)}"
