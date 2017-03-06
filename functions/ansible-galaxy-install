@@ -16,7 +16,7 @@ ansible-galaxy-install() {
   done
   [ -z "$_role_name" ] && {
     cat <<_USAGE_
-Usage: $FUNCNAME ROLENAME [-p ROLEPATH]
+Usage: $FUNCNAM [-p ROLEPATH]E ROLENAME
 
 _USAGE_
     return 1

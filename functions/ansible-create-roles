@@ -3,9 +3,9 @@ ansible-create-roles() {
   local _role_name=""
   local _role_path="${ROLEPATH:-.}"
   local _role_wdir=""
-  local _tmplt_dir="${AT_TMPLT_DIR:-$ANSIBLETOOLSDIR/role.tmplt.d}"
-  local _AT_AUTHOR="${AT_AUTHOR:-ansible@localhost}"
-  local _ATCOMPANY="${AT_COMPANY:-ANSIBLE.COM}"
+  local _tmplt_dir="${ANSIBLETOOLS_TMPLTDIR:-$ANSIBLETOOLSDIR/role.tmplt.d}"
+  local _AT_AUTHOR="${ANSIBLETOOLS_AUTHOR:-ansible@localhost}"
+  local _ATCOMPANY="${ANSIBLETOOLS_COMPANY:-ANSIBLE.COM}"
   eval $(getoptions "p|:=_role_path" "$@")
   while getoptions_has_next
   do
@@ -38,25 +38,27 @@ _USAGE_
 
     _role_wdir="$_role_path/$_role_name"
 
-		if [ -e "$_role_wdir/meta/main.yml" ]
-		then
-			cat "$_role_wdir/meta/main.yml" |
-			sed -e 's#\(author:\) \(your name\)#\1 '"$_AT_AUTHOR"'#g' \
-					-e 's#\(company:\) \(your company (optional)\)#\1 '"$_ATCOMPANY"'#g' \
-					1>.temp 2>/dev/null &&
-			mv -f .temp \
-						"$_role_wdir/meta/main.yml" \
-						1>/dev/null 2>&1
-		fi
-		
-		if [ -d "$_tmplt_dir" ]
-		then
+    if [ -e "$_role_wdir/meta/main.yml" ]
+    then
+      meta_main_yml=".meta_main.yml.$$"
+      cat "$_role_wdir/meta/main.yml" |
+      sed -e 's#\(author:\) \(your name\)#\1 '"$_AT_AUTHOR"'#g' \
+          -e 's#\(company:\) \(your company (optional)\)#\1 '"$_ATCOMPANY"'#g' \
+          1>$meta_main_yml 2>/dev/null &&
+      mv -f \
+          "$meta_main_yml" \
+          "$_role_wdir/meta/main.yml" \
+          1>/dev/null 2>&1
+    fi
+
+    if [ -d "$_tmplt_dir" ]
+    then
       echo "- extract the templates '$_tmplt_dir'."
       (cd "$_tmplt_dir" && tar -cv .) |
       (cd "$_role_wdir" && tar -xf -)
     else
       :
-		fi #2>/dev/null
+    fi #2>/dev/null
 
   }
 

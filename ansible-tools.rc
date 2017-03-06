@@ -6,7 +6,7 @@ ANSIBLETOOLSDIR=$([ -n "${BASH_SOURCE%/*}" ] && cd "${BASH_SOURCE%/*}" 2>/dev/nu
 if [ -d "$ANSIBLETOOLSDIR" ]
 then
   echo "$PATH" |
-  grep -E '^(.+:|)'"${ANSIBLETOOLSDIR}"'(:.+|)$' 1>/dev/null 2>&1 || {
+  egrep '^(.+:|)'"${ANSIBLETOOLSDIR}"'(:.+|)$' 1>/dev/null 2>&1 || {
     PATH="${PATH}:${ANSIBLETOOLSDIR}"
     export PATH
   }
@@ -39,6 +39,6 @@ ANSIBLETOOLS_AUTHOR="${AUTHOR:-$(id -un 2>/dev/null)}"
 ANSBILETOOLS_COMPANY="${COMPANY:-$(hostname 2>/dev/null)}"
 
 # Role template
-ANSIBLETOOLS_TMPLTDIAR="$ANSIBLETOOLSDIR/role.tmplt.d"
+ANSIBLETOOLS_TMPLTDIR="${TMPLTDIR:-$ANSIBLETOOLSDIR/role.tmplt.d}"
 
 # vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline

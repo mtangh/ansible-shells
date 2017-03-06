@@ -1,5 +1,5 @@
 # ansible-galaxy-search
-galaxy-search() {
+ansible-galaxy-search() {
   ansible-galaxy search "$@"
   return $?
 }
