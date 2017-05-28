@@ -24,9 +24,10 @@ install:
   #- printf '[defaults]\nroles_path=../' >ansible.cfg
 
 script:
-  # Basic role syntax check
-  - bash -n functions/* ./ansible-tools.rc
-  
+  # Basic scripts syntax check
+  - bash -n functions/*
+  # RC syntax check and load
+  - bash -n ./ansible-tools.rc && . ./ansible-tools.rc
 
 #notifications:
 #  webhooks: https://galaxy.ansible.com/api/v1/notifications/
