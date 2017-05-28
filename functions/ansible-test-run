@@ -3,6 +3,8 @@ ansible-test-run() {
   local ansible_conf=""
   local casenamelist=""
   local testcasename=""
+  local define_cases=""
+  local def_casename=""
   local play_playdir="${ANSIBLE_TEST_RUN_PLAYDIR:-}"
   local play_testyml="${ANSIBLE_TEST_RUN_TESTYML:-test.yml}"
   local play_options="${ANSIBLE_TEST_RUN_OPTIONS:--D}"
@@ -10,6 +12,7 @@ ansible-test-run() {
   local optionsatend=0
   local case_options=""
   local inventory_fn="inventory"
+  local listingcases=0
   local syntax_check=0
   local cleanup_only=0
   local cleanup_tags=1
@@ -74,20 +77,21 @@ ansible-test-run() {
   } 2>/dev/null
 
   c_extra_vars=""
-  c_extra_vars="${c_extra_vars} -e test_run=yes"
-  c_extra_vars="${c_extra_vars} -e test_owner=${test_r_owner}"
-  c_extra_vars="${c_extra_vars} -e test_group=${test_r_group}"
-  c_extra_vars="${c_extra_vars} -e test_rootdir=${test_rootdir}"
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_run=yes"
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_owner=${test_r_owner}"
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_group=${test_r_group}"
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_rootdir=${test_rootdir}"
   [ -d "${test_basedir}/test-setup" ] &&
-  c_extra_vars="${c_extra_vars} -e test_setup_dir=${test_basedir}/test-setup"
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_setup_dir=${test_basedir}/test-setup"
   [ -d "${test_basedir}/test-teardown" ] &&
-  c_extra_vars="${c_extra_vars} -e test_teardown_dir=${test_basedir}/test-teardown"
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_teardown_dir=${test_basedir}/test-teardown"
 
-  options_opts=$(echo ${options_opts} "|syntax-check=syntax_check")
-  options_opts=$(echo ${options_opts} "q|quiet=quietrunning")
-  options_opts=$(echo ${options_opts} "|play-args:=play_options")
-  options_opts=$(echo ${options_opts} "|reset=cleanup_only")
-  options_opts=$(echo ${options_opts} "|no-clean=cleanup_tags")
+  options_opts="${options_opts:+$options_opts }|list=listingcases"
+  options_opts="${options_opts:+$options_opts }|syntax-check=syntax_check"
+  options_opts="${options_opts:+$options_opts }q|quiet=quietrunning"
+  options_opts="${options_opts:+$options_opts }|play-args:=play_options"
+  options_opts="${options_opts:+$options_opts }|reset=cleanup_only"
+  options_opts="${options_opts:+$options_opts }|no-clean=cleanup_tags"
 
   eval $(getoptions "$options_opts" "$@")
 
@@ -99,54 +103,73 @@ ansible-test-run() {
       optionsatend=1
       ;;
     -C|--dry-run)
-      play_options=$(echo ${play_options} -C)
+      play_options="${play_options:+$play_options }-C"
       ;;
     -h|--help)
       echo "Usage: $FUNCNAME [OPTIONS] [test-case-name ...]" 1>&2
       return 1
       ;;
     -*)
-      play_options=$(echo ${play_options} "${_getopt_V}")
+      play_options="${play_options:+$play_options }${_getopt_V}"
       ;;
     *)
       [ $optionsatend -eq 0 ] &&
-      casenamelist=$(echo ${casenamelist} "${_getopt_V}")
+      casenamelist="${casenamelist:+$casenamelist }${_getopt_V}"
       [ $optionsatend -eq 0 ] ||
-      play_options=$(echo ${play_options} "${_getopt_V}")
+      play_options="${play_options:+$play_options }${_getopt_V}"
       ;;
     esac
   done
 
-  [ $syntax_check -ne 0 ] && {
-    ansible-playbook -vvvv \
-      -i "${inventory_fn}" "${play_testyml}" \
-      -M ./ --syntax-check
-    return $?
-  }
-
-  [ $cleanup_only -ne 0 ] &&
-  [ -d "${test_rootdir}" ] && {
+  [ $cleanup_only -ne 0 -a -d "${test_rootdir}" ] && {
     rm -vrf "${test_rootdir}"
     echo
     echo "clean."
     return 0
   }
 
+  [ $syntax_check -ne 0 ] && {
+    ansible-playbook -vvvv \
+       -i "${inventory_fn}" "${play_testyml}" -M ./ --syntax-check
+    return $?
+  }
+
+  define_cases=$(
+    : && {
+      ansible-playbook -i "${inventory_fn}" "${play_testyml}" --list-tags |
+      $SED -nre 's/^[ ]*play.*[ ]*TAGS:[ ]*\[([^ ]+)\].*$/\1/gp' |
+      sort -u
+    } 2>/dev/null )
+
+  [ $listingcases -ne 0 ] && {
+    for def_casename in $define_cases
+    do
+      echo "$def_casename"
+    done
+    return 0
+  }
+
+  [ -n "$casenamelist" ] || casenamelist="${define_cases}"
+  [ -n "$casenamelist" ] || casenamelist="default"
+
   [ -d "${test_rootdir}" ] || {
     mkdir -p "${test_rootdir}" 1>/dev/null 2>&1
   }
 
-  [ -z "$casenamelist" ] && {
-    casenamelist=$(
-      ansible-playbook -i "${inventory_fn}" "${play_testyml}" --list-tags |
-      $SED -nre 's/^[ ]*play.*[ ]*TAGS:[ ]*\[(.+)\].*$/\1/gp' |sort -u 2>/dev/null)
-  }
-  [ -z "$casenamelist" ] && {
-    casenamelist="default"
-  }
-
   for testcasename in $casenamelist
   do
+
+    : && {
+      for def_casename in $define_cases
+      do
+        echo "$def_casename"
+      done
+    } 2>/dev/null |
+    grep -E '^'"$testcasename"'$' 1>/dev/null 2>&1 || {
+      printf " %-31s ......... " "$testcasename"
+      echo 'NOT_FOUND.'
+      continue
+    }
 
     test_prefdir="${test_rootdir}/${testcasename}"
 
@@ -160,7 +183,7 @@ ansible-test-run() {
     }
 
     case_options="${play_options}"
-    
+
     for tmp_optsfile in ${play_playdir}/{,opts/,play-options/}{all,$testcasename}.opts
     do
       [ -r "${tmp_optsfile}" ] &&
@@ -168,12 +191,12 @@ ansible-test-run() {
     done
 
     case_options=$(echo "$case_options"|$SED -re 's#^ *##g' 2>/dev/null)
-    
+
     tmpextravars="${c_extra_vars}"
     tmpextravars="${tmpextravars} -e test_casename=${testcasename}"
     tmpextravars="${tmpextravars} -e test_prefix_dir=${test_prefdir}"
     tmpextravars="${tmpextravars} -e prefix_dir=${test_prefdir}"
-    
+
     for tmp_varsfile in ${play_playdir}/{,vars/}{all,$testcasename}.{yml,json}
     do
       [ -r "${tmp_varsfile}" ] &&
@@ -191,7 +214,7 @@ ansible-test-run() {
 ------------------------------------------------------------------------
 --  Test Case:
 --    ${testcasename} in playbook:${play_testyml}
---  Play Options: 
+--  Play Options:
 --    -vvvv
 --    -i ${inventory_fn}
 --    ${case_options}
