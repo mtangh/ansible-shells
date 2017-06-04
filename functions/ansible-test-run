@@ -17,15 +17,13 @@ ansible-test-run() {
   local cleanup_only=0
   local cleanup_tags=1
   local quietrunning=0
-  local test_basedir="${play_playdir:-.}"
-  local test_rootdir="${test_basedir}/target"
+  local test_rootdir="${play_playdir:-.}"
   local test_r_owner=$(id -un 2>/dev/null)
   local test_r_group=$(id -gn 2>/dev/null)
   local test_prefdir=""
   local c_extra_vars=""
   local tmpextravars=""
   local tmp_optsfile=""
-  local tmp_varsfile=""
   local tmp_test_dir=""
 
   local ANSIBLE_CONFIG=""
@@ -80,11 +78,11 @@ ansible-test-run() {
   c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_run=yes"
   c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_owner=${test_r_owner}"
   c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_group=${test_r_group}"
-  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_rootdir=${test_rootdir}"
-  [ -d "${test_basedir}/test-setup" ] &&
-  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_setup_dir=${test_basedir}/test-setup"
-  [ -d "${test_basedir}/test-teardown" ] &&
-  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_teardown_dir=${test_basedir}/test-teardown"
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_root_dir=${test_rootdir}"
+  [ -d "${test_roordir}/test-setup" ] &&
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_setup_dir=${test_roordir}/test-setup"
+  [ -d "${test_roordir}/test-teardown" ] &&
+  c_extra_vars="${c_extra_vars:+$c_extra_vars }-e test_teardown_dir=${test_roordir}/test-teardown"
 
   options_opts="${options_opts:+$options_opts }|list=listingcases"
   options_opts="${options_opts:+$options_opts }|syntax-check=syntax_check"
@@ -171,7 +169,7 @@ ansible-test-run() {
       continue
     }
 
-    test_prefdir="${test_rootdir}/${testcasename}"
+    test_prefdir="${test_rootdir}/target/${testcasename}"
 
     [ $cleanup_tags -ne 0 ] &&
     [ -d "${test_prefdir}" ] && {
@@ -187,23 +185,14 @@ ansible-test-run() {
     for tmp_optsfile in ${play_playdir}/{,opts/,play-options/}{all,$testcasename}.opts
     do
       [ -r "${tmp_optsfile}" ] &&
-      case_options="${case_options} $(cat $tmp_optsfile)"
+      case_options="${case_options:+$case_options }$(cat $tmp_optsfile)"
     done
 
     case_options=$(echo "$case_options"|$SED -re 's#^ *##g' 2>/dev/null)
 
     tmpextravars="${c_extra_vars}"
-    tmpextravars="${tmpextravars} -e test_casename=${testcasename}"
-    tmpextravars="${tmpextravars} -e test_prefix_dir=${test_prefdir}"
-    tmpextravars="${tmpextravars} -e prefix_dir=${test_prefdir}"
-
-    for tmp_varsfile in ${play_playdir}/{,vars/}{all,$testcasename}.{yml,json}
-    do
-      [ -r "${tmp_varsfile}" ] &&
-      tmpextravars="${tmpextravars} -e @${tmp_varsfile}"
-    done
-
-    tmpextravars=$(echo "$tmpextravars"|$SED -re 's#^ *##g' 2>/dev/null)
+    tmpextravars="${tmpextravars:+$tmpextravars }-e test_casename=${testcasename}"
+    tmpextravars="${tmpextravars:+$tmpextravars }-e test_prefix_dir=${test_prefdir}"
 
     printf " %-31s ......... " "$testcasename"
 
