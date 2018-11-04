@@ -34,7 +34,7 @@ _USAGE_
     return 3
   }
 
-  ansible-galaxy init --offline -p "$_role_path" "$_role_name" && {
+  ansible-galaxy init --offline --init-path="$_role_path" "$_role_name" && {
 
     _role_wdir="$_role_path/$_role_name"
 
