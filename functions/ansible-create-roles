@@ -1,12 +1,19 @@
 # ansible-create-roles
 ansible-create-roles() {
+  local _getoption=""
   local _role_name=""
   local _role_path="${ROLEPATH:-.}"
   local _role_wdir=""
-  local _tmplt_dir="${ANSIBLETOOLS_TMPLTDIR:-$ANSIBLETOOLSDIR/role.tmplt.d}"
+  local _role_skel="${ANSIBLETOOLS_SKELDIR:-$ANSIBLETOOLSDIR/role-skeleton}"
   local _AT_AUTHOR="${ANSIBLETOOLS_AUTHOR:-ansible@localhost}"
   local _ATCOMPANY="${ANSIBLETOOLS_COMPANY:-ANSIBLE.COM}"
-  eval $(getoptions "p|:=_role_path" "$@")
+
+  _getoption="${_getoption:+$_getoption }p|:=_role_path"
+  _getoption="${_getoption:+$_getoption }|role-skel:=_role_skel"
+  _getoption="${_getoption:+$_getoption }|role-skeleton:=_role_skel"
+ 
+  eval $(getoptions "${_getoption}" "$@")
+
   while getoptions_has_next
   do
     eval $(getoptions_shift)
@@ -18,6 +25,7 @@ ansible-create-roles() {
       ;;
     esac
   done
+
   [ -z "$_role_name" ] && {
     cat <<_USAGE_
 Usage: $FUNCNAME ROLENAME [-p ROLEPATH]
@@ -34,31 +42,29 @@ _USAGE_
     return 3
   }
 
-  ansible-galaxy init --offline --init-path="$_role_path" "$_role_name" && {
+  _init_opts=""
+  _init_opts="${_init_opts:+$_init_opts }--offline"
+  _init_opts="${_init_opts:+$_init_opts }--init-path=${_role_path}"
+  [ -n "$_role_skel" -a -d "$_role_skel" ] &&
+  _init_opts="${_init_opts}${_init_opts:+ }--role-skeleton=${_role_skel}"
+echo $_role_skel
+echo $_init_opts
+  ansible-galaxy init ${_init_opts} "$_role_name" && {
 
-    _role_wdir="$_role_path/$_role_name"
+    _role_wdir="${_role_path}/${_role_name}"
 
-    if [ -e "$_role_wdir/meta/main.yml" ]
+    if [ -e "${_role_wdir}/meta/main.yml" ]
     then
       meta_main_yml=".meta_main.yml.$$"
-      cat "$_role_wdir/meta/main.yml" |
+      cat "${_role_wdir}/meta/main.yml" |
       sed -e 's#\(author:\) \(your name\)#\1 '"$_AT_AUTHOR"'#g' \
           -e 's#\(company:\) \(your company (optional)\)#\1 '"$_ATCOMPANY"'#g' \
-          1>$meta_main_yml 2>/dev/null &&
+          1>"${meta_main_yml}" 2>/dev/null &&
       mv -f \
-          "$meta_main_yml" \
+          "${meta_main_yml}" \
           "$_role_wdir/meta/main.yml" \
           1>/dev/null 2>&1
     fi
-
-    if [ -d "$_tmplt_dir" ]
-    then
-      echo "- extract the templates '$_tmplt_dir'."
-      (cd "$_tmplt_dir" && tar -cv .) |
-      (cd "$_role_wdir" && tar -xf -)
-    else
-      :
-    fi #2>/dev/null
 
   }
 

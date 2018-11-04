@@ -39,6 +39,6 @@ ANSIBLETOOLS_AUTHOR="${AUTHOR:-$(id -un 2>/dev/null)}"
 ANSBILETOOLS_COMPANY="${COMPANY:-$(hostname 2>/dev/null)}"
 
 # Role template
-ANSIBLETOOLS_TMPLTDIR="${TMPLTDIR:-$ANSIBLETOOLSDIR/role.tmplt.d}"
+ANSIBLETOOLS_SKELDIR="${SKELDIR:-$ANSIBLETOOLSDIR/role-skeleton}"
 
 # vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline
