@@ -6,13 +6,13 @@
 
   - name: "{{ tests_casename|d('noname') }} | test-setup | Include vars."
     include_vars:
-      file: "{{ '%s/%s.yml'|format(tests_vars_dir,tests_var_file_name) }}"
+      file: "{{ '%s/%s.yml'|format(tests_vars_dir,tests_vars_for_testcase) }}"
     with_items:
     - main
     - "{{ tests_casename }}"
     loop_control:
-      loop_var: tests_var_file_name
-    when: ('%s/%s.yml'|format(tests_vars_dir,vars_name))|is_file
+      loop_vars: tests_vars_for_testcase
+    when: ('%s/%s.yml'|format(tests_vars_dir,tests_vars_for_testcase))|is_file
     no_log: "{{ tests_vars_dir|d('')|is_dir == false }}"
 
   - name: "{{ tests_casename|d('noname') }} | test-setup | Cleanup."
