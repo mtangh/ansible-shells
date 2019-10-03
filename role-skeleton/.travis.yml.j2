@@ -1,8 +1,8 @@
 ---
-# .travis.yml
 # vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline
 
 language: python
+
 python: "2.7"
 
 # Use the new container infrastructure
@@ -15,30 +15,26 @@ addons:
     - python-pip
 
 install:
-  # Install ansible
-  - pip install ansible
-
   # Check bash version
   - bash --version
-
-  # Check ansible version
-  - ansible --version
-
+  # Install ansible
+  - pip install ansible; ansible --version
   ## Create ansible.cfg with correct roles_path
-  #- printf '[defaults]\nroles_path=../' >tests/ansible.cfg
-
+  #- printf '[defaults]\nroles_path = ./..:./../..\n' >tests/ansible.cfg
   ## Create an inventory
-  #- printf 'localhost\n' >tests/inventory
+  #- printf '[testcases]\nlocalhost\n' >tests/testcases
 
 script:
-  # Basic role syntax check
-  - (cd tests; ansible-playbook -i inventory test.yml --syntax-check)
 
-  # Run in check mode
-  - (cd tests; ansible-playbook -i inventory test.yml -C)
+  # Basic role syntax check, and tests-run
+  - |
+    : "Run tests-all.sh" && {
+      bash tests/tests-all.sh
+    } &&
+    : "OK";
 
+# Notifications
 #notifications:
-#  webhooks: https://galaxy.ansible.com/api/v1/notifications/
 #  email:
-#  - your@email.address
+#  - your@emailaddress
 

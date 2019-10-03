@@ -11,7 +11,7 @@ ansible-test-run() {
   local options_opts=""
   local optionsatend=0
   local case_options=""
-  local inventory_fn="inventory"
+  local inventory_fn="testcases"
   local listingcases=0
   local syntax_check=0
   local cleanup_only=0
@@ -132,12 +132,11 @@ ansible-test-run() {
     return $?
   }
 
-  define_cases=$(
-    : && {
-      ansible-playbook -i "${inventory_fn}" "${play_testyml}" --list-tags |
-      $SED -nre 's/^[ ]*play.*[ ]*TAGS:[ ]*\[([^ ]+)\].*$/\1/gp' |
-      sort -u
-    } 2>/dev/null )
+  define_cases=$( {
+    cat "${inventory_fn}" |
+    $SED -En 's@^[ ]*([0-9A-Za-z][-_.0-9A-Za-z]*)[ ]*(.+$|$)@\1@gp' |
+    sort -u
+    } 2>/dev/null; )
 
   [ $listingcases -ne 0 ] && {
     for def_casename in $define_cases
@@ -214,7 +213,7 @@ _LOG_
 
     ansible-playbook -vvvv \
       -i "${inventory_fn}" "${play_testyml}" \
-      -t "$testcasename" $case_options $tmpextravars
+      -l "$testcasename" $case_options $tmpextravars
 
     } 1>"${test_prefdir}.log" 2>&1
 
