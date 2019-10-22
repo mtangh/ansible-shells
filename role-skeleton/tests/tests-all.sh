@@ -15,10 +15,10 @@ testcase_run=0
 testcase_ret=0
 
 # Redirect to filter
-exec 1> >({
-  cat|while IFS= read row_data
+exec 1> >(set +x && {
+  cat | while IFS= read row_data
   do echo "$THIS: $row_data"; done
-  } 2>/dev/null)
+  } 2>/dev/null; )
 
 # The tests
 cd "${CDIR}" &>/dev/null &&
@@ -26,10 +26,10 @@ cd "${CDIR}" &>/dev/null &&
 
   [ -n "${testcaselist}" ] || {
     testcaselist=$( {
-      cat ./testcases |
-      sed -En 's@^[ ]*([0-9A-Za-z][-_.0-9A-Za-z]*)[ ]*(.+$|$)@\1@gp' |
-      sort -u
-      } 2>/dev/null; )
+       cat ./testcases |
+       sed -En 's@^[ ]*([0-9A-Za-z][-_.0-9A-Za-z]*)[ ]*(.+$|$)@\1@gp' |
+       sort -u
+       } 2>/dev/null; )
   }
 
   echo "Syntax check." && {
