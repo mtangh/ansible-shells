@@ -10,7 +10,7 @@ ansible-tools-rc() {
     ${ANSIBLETOOLSDIR}/ansible.cfg
   do
     [ -e "$ansible_config" ] && {
-      echo "export ANSIBLE_CONFIG=${ANSIBLE_CONFIG};"
+      echo "export ANSIBLE_CONFIG=${ansible_config};"
       break
     }
   done

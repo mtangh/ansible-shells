@@ -1,7 +1,7 @@
 # ansible-syntax-check
 ansible-syntax-check() {
   ansible-test-run --syntax-check &&
-  [ $_funcret -eq 0 ] &&
+  [ $? -eq 0 ] &&
   echo "OK."
   return $?
 }

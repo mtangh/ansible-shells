@@ -52,6 +52,9 @@ _USAGE_
 
     _role_wdir="${_role_path}/${_role_name}"
 
+    ( cd "${_role_wdir}" &&
+      find . -name "*.sh" -exec chmod a+x {} \; ) || :
+
     if [ -e "${_role_wdir}/meta/main.yml" ]
     then
       meta_main_yml=".meta_main.yml.$$"
