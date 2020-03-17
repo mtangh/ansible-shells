@@ -17,7 +17,7 @@ testcase_ret=0
 # Redirect to filter
 exec 1> >(set +x && {
   cat | while IFS= read row_data
-  do echo "$THIS: $row_data"; done
+  do echo "${THIS}: ${row_data}"; done
   } 2>/dev/null; )
 
 # The tests
@@ -33,19 +33,22 @@ cd "${CDIR}" &>/dev/null &&
   }
 
   # Cleanup ?
-  case "${testcaselist:-}" in
-  clean*)
-    [ -d "./target" ] && {
-      echo rm  -rf ./target
-      rm  -rf ./target
-    }
-    exit 0
-    ;;
-  esac
+  for tests_casename in ${testcaselist:-}
+  do
+    case "${tests_casename:-}" in
+    clean*)
+      [ -d "./target" ] && {
+        echo rm  -rf ./target
+        rm  -rf ./target
+      }
+      exit 0
+      ;;
+    esac
+  done
 
   echo "Syntax check." && {
 
-    $ansible_play --syntax-check || testcase_ret=$?
+    ${ansible_play} --syntax-check || testcase_ret=$?
     echo
 
   } &&
@@ -60,8 +63,8 @@ cd "${CDIR}" &>/dev/null &&
     for tests_casename in ${testcaselist}
     do
       testcase_run=$((++testcase_run))
-      printf 'CASE #%03d [%s].' $testcase_run "$tests_casename"; echo
-      $ansible_play ${ansible_opts} -l "${tests_casename}" || testcase_ret=$?
+      printf 'CASE #%03d [%s].' ${testcase_run} "${tests_casename}"; echo
+      ${ansible_play} ${ansible_opts} -l "${tests_casename}" || testcase_ret=$?
       echo
     done
 

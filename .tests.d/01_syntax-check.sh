@@ -3,7 +3,7 @@ THIS="${BASH_SOURCE##*/}"
 CDIR=$([ -n "${BASH_SOURCE%/*}" ] && cd "${BASH_SOURCE%/*}" &>/dev/null; pwd)
 
 # Run tests
-echo "[${tests_name}] syntax-check" && {
+echo "[${tests_name}] syntax-check: functions/*" && {
 
   check_in=0
   check_ng=0

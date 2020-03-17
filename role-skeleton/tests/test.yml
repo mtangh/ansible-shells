@@ -8,11 +8,21 @@
 
   gather_facts: "{{ gather_facts_enabled|d(true,true) }}"
 
-  roles:
-  # Setup
-  - { role: tests, vars: { tests_task: setup } }
-  # Tests
-  - { role: ../.. }
-  # Teardown
-  - { role: tests, vars: { tests_task: teardown } }
+  pre_tasks:
+  - name:
+    include_tasks:
+      file: "tasks/tests_pre.yml"
+    tags:
+    - always
 
+  roles:
+  - { role: ../.. }
+
+  post_tasks:
+  - name:
+    include_tasks:
+      file: "tasks/tests_post.yml"
+    tags:
+    - always
+  
+  

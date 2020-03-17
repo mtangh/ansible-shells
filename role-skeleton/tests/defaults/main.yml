@@ -62,57 +62,6 @@ tests_prefix_dir: "{{
   none
   ),none) }}"
 
-# lists
-tests_files_setup_dir_list: |
-  {%- set o = [] -%}
-  {%- for v in ['all',tests_casename|d('testcase',true)] -%}
-  {%-   set _ = o.append('%s/%s/files/setup'|format(tests_cases_dir,v)) -%}
-  {%- endfor -%}
-  {{- o -}}
-
-tests_files_teardown_dir_list: |
-  {%- set o = [] -%}
-  {%- for v in ['all',tests_casename|d('testcase',true)] -%}
-  {%-   set _ = o.append('%s/%s/files/teardown'|format(tests_cases_dir,v)) -%}
-  {%- endfor -%}
-  {{- o -}}
-
-tests_tasks_setup_dir_list: |
-  {%- set o = [] -%}
-  {%- for v in ['all',tests_casename|d('testcase',true)] -%}
-  {%-   for d in ['tasks','tasks/setup'] -%}
-  {%-     set _ = o.append('%s/%s/%s'|format(tests_cases_dir,v,d)) -%}
-  {%-   endfor -%}
-  {%- endfor -%}
-  {{- o -}}
-
-tests_tasks_teardown_dir_list: |
-  {%- set o = [] -%}
-  {%- for v in ['all',tests_casename|d('testcase',true)] -%}
-  {%-   for d in ['tasks','tasks/teardown'] -%}
-  {%-     set _ = o.append('%s/%s/%s'|format(tests_cases_dir,v,d)) -%}
-  {%-   endfor -%}
-  {%- endfor -%}
-  {{- o -}}
-
-tests_vars_setup_file_list: |
-  {%- set o = [] -%}
-  {%- for v in ['all',tests_casename|d('testcase',true)] -%}
-  {%-   for d in ['main','tests-setup'] -%}
-  {%-     set _ = o.append('%s/%s/vars/%s.yml'|format(tests_cases_dir,v,'main')) -%}
-  {%-   endfor -%}
-  {%- endfor -%}
-  {{- o -}}
-
-tests_vars_teardown_file_list: |
-  {%- set o = [] -%}
-  {%- for v in ['all',tests_casename|d('testcase',true)] -%}
-  {%-   for d in ['main','tests-teardown'] -%}
-  {%-     set _ = o.append('%s/%s/vars/%s.yml'|format(tests_cases_dir,v,'main')) -%}
-  {%-   endfor -%}
-  {%- endfor -%}
-  {{- o -}}
-
 # Ignore validations
 tests_ignore_validation_files:
 - '.git*'

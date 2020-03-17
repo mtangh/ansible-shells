@@ -1,0 +1,43 @@
+---
+# tests for case
+# vim: set ff=unix ts=2 sw=2 sts=2 et : This line is VIM modeline
+
+- block:
+
+  - name: "{{ '%s/%s'|format(tests_casename,tests_task) }} | Include vars."
+    include_vars:
+      file: "{{ _t_vars_file }}"
+    with_items: "{{ tests_casename|tt_lookup_yml_files(tests_task,'vars') }}"
+    loop_control:
+      loop_var: _t_vars_file
+    when: _t_vars_file|d('',true)|is_file == true
+    no_log: "{{ tests_casename is not tt_has_yml_files(tests_task,'vars') }}"
+
+  - name: "{{ '%s/%s'|format(tests_casename,tests_task) }} | Task for case."
+    include_tasks:
+      file: "{{ _t_tasks_file }}"
+    with_items: "{{ tests_casename|tt_lookup_yml_files(tests_task,'tasks') }}"
+    loop_control:
+      loop_var: _t_tasks_file
+    when: _t_tasks_file|d('',true)|is_file == true
+    no_log: "{{ tests_casename is not tt_has_yml_files(tests_task,'tasks') }}"
+
+  when: tests_run|d(false,true) == true
+        and tests_task|d(none) is tt_valid
+        and tests_casename|d(none) is not none
+        and tests_prefix_dir|d(none)|is_dir == true
+        and tests_owner|d(none) is not none
+        and tests_group|d(none) is not none
+        and tests_casename is tt_has_yml_files(tests_task,'tasks')
+  no_log: "{{
+        not(
+        tests_run|d(false,true) == true
+        and tests_task|d(none) is tt_valid
+        and tests_casename|d(none) is not none
+        and tests_prefix_dir|d(none)|is_dir == true
+        and tests_owner|d(none) is not none
+        and tests_group|d(none) is not none
+        and tests_casename is tt_has_yml_files(tests_task,'tasks')
+        ) }}"
+  tags:
+  - always
