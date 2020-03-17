@@ -5,7 +5,7 @@ CDIR=$([ -n "${BASH_SOURCE%/*}" ] && cd "${BASH_SOURCE%/*}" &>/dev/null; pwd)
 # Run tests
 echo "[${tests_name}] syntax-check: tests-all.sh" && {
 
-  bash -n role-skelton/tests/tests-all.sh
+  bash -n role-skeleton/tests/tests-all.sh
   
 } &&
 echo "[${tests_name}] syntax-check: ansible plugins" && {
@@ -15,7 +15,7 @@ echo "[${tests_name}] syntax-check: ansible plugins" && {
     check_in=0
     check_ng=0
     for pymodule in \
-    role-skelton/tests/tasks/plugins/{compat,util}
+    role-skeleton/tests/tasks/plugins/{compat,util}
     do
       check_in=1
       ( cd "${pymodule}" && {
@@ -37,7 +37,7 @@ echo "[${tests_name}] syntax-check: ansible plugins" && {
     [ ${check_ng} -eq 0 ]
 
   } &&
-  ( cd role-skelton/tests/tasks/plugins && {
+  ( cd role-skeleton/tests/tasks/plugins && {
 
     check_in=0
     check_ng=0
