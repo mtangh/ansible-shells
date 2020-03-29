@@ -4,6 +4,11 @@
 from __future__ import (absolute_import, division, print_function)
 __metaclass__ = type
 
+import os
+import sys
+
+sys.path.append(os.path.dirname(__file__))
+
 import util.tests as t
 import compat.func as f
 
